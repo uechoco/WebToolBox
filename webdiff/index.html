@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>webdiff</title>
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/diff2html/2.3.3/diff2html.min.css">
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/3.4.0/diff.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/diff2html/2.3.3/diff2html.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/diff2html/2.3.3/diff2html-ui.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  $('#submitText').click(function(){
+    const unifiedDiff = JsDiff.createPatch("fileName", $('#beforeText').val(), $('#afterText').val(), "test", "test");
+    const diff2htmlUi = new Diff2HtmlUI({diff: unifiedDiff});
+    diff2htmlUi.draw('#app', {inputFormat: 'json', showFiles: true, matching: 'lines'});
+  });
+});
+</script>
+</head>
+<body>
+<div id="inputarea">
+  <div style="float:left;margin-right:5px;">
+    <textarea id="beforeText" rows="30" cols="80"></textarea>
+  </div>
+  <div>
+    <textarea id="afterText" rows="30" cols="80"></textarea>
+  </div>
+  <p style="clear:both;">
+    <button id="submitText">compare</button>
+  </p>
+</div>
+<div id="app" style="background-color:#ffffcc;">
+</div>
+<div>
+c.f. <a href="https://qiita.com/horikeso/items/72f5953425f13bbde5c3">HTMLでdiffを表示させてみる- Qiita</a>
+</div>
+</body>
+</html>

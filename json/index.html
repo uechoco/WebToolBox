@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>json formatter</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.js"></script>
+        <link rel=stylesheet href=https://cdn.jsdelivr.net/npm/pretty-print-json@0.1/dist/pretty-print-json.css>
+        <script src=https://cdn.jsdelivr.net/npm/pretty-print-json@0.1/dist/pretty-print-json.min.js></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                $('#submitText').click(function(){
+                    const data = JSON.parse($('#beforeText').val());
+                    $('#afterHTML').html(prettyPrintJson.toHtml(data));
+                });
+            });
+        </script>
+    </head>
+    <body>
+        <div id="inputarea">
+            <div style="margin-right:5px;">
+                <textarea id="beforeText" rows="30" cols="80"></textarea>
+            </div>
+            <p>
+                <button id="submitText">pretty print</button>
+            </p>
+            <div style="margin-right:5px;padding:5px;border:solid 1px #333;background-color:#999;">
+                pretty-printed JSON:
+                <div style="border:solid 1px #666;background-color:#fff;">
+                    <pre id="afterHTML"></pre>
+                </div>
+            </div>
+        </div>
+        <div id="app" style="background-color:#ffffcc;">
+        </div>
+        <div>
+            c.f. <a href="https://qiita.com/horikeso/items/72f5953425f13bbde5c3">pretty-print-json - npm</a>
+        </div>
+    </body>
+</html>
