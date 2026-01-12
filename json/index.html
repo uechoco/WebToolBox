@@ -1,39 +1,598 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <title>json formatter</title>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.js"></script>
-        <link rel=stylesheet href=https://cdn.jsdelivr.net/npm/pretty-print-json@0.1/dist/pretty-print-json.css>
-        <script src=https://cdn.jsdelivr.net/npm/pretty-print-json@0.1/dist/pretty-print-json.min.js></script>
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                $('#submitText').click(function(){
-                    const data = JSON.parse($('#beforeText').val());
-                    $('#afterHTML').html(prettyPrintJson.toHtml(data));
-                });
-            });
-        </script>
-    </head>
-    <body>
-        <div id="inputarea">
-            <div style="margin-right:5px;">
-                <textarea id="beforeText" rows="30" cols="80"></textarea>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart JSON Tool</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <link rel=stylesheet href=https://cdn.jsdelivr.net/npm/pretty-print-json@1.4/dist/pretty-print-json.css>
+    <script src=https://cdn.jsdelivr.net/npm/pretty-print-json@1.4/dist/pretty-print-json.min.js></script>
+    <!-- jq-web: User suggested version -->
+    <script src="https://cdn.jsdelivr.net/npm/jq-web@0.6.2/jq.min.js"></script>
+    <!-- Marked for Markdown rendering (optional but good for AI explanation if needed, skipping for now to keep simple) -->
+
+    <style>
+        :root {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --bg-input: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --border: #334155;
+            --font-sans: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            background-color: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.025em;
+        }
+
+        .api-key-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        input[type="password"],
+        input[type="text"],
+        textarea {
+            background-color: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            font-family: var(--font-sans);
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        button {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 0.875rem;
+        }
+
+        button:hover {
+            background-color: var(--accent-hover);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        button.generating {
+            position: relative;
+            color: transparent;
+        }
+
+        button.generating::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 16px;
+            height: 16px;
+            margin-left: -8px;
+            margin-top: -8px;
+            border: 2px solid white;
+            border-radius: 50%;
+            border-bottom-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            padding: 1.5rem;
+            gap: 1.5rem;
+            overflow: hidden;
+            height: calc(100vh - 65px);
+        }
+
+        .panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-width: 0;
+            /* Prevent flex overflow */
+            background-color: var(--bg-card);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .editor-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            border-radius: 0.375rem;
+            border: 1px solid var(--border);
+            background-color: #0d1117;
+            /* Darker bg for code */
+        }
+
+        textarea.code-editor {
+            width: 100%;
+            height: 100%;
+            resize: none;
+            border: none;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            line-height: 1.5;
+            padding: 1rem;
+            background-color: transparent;
+        }
+
+        .output-container {
+            overflow: auto;
+            padding: 1rem;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            height: 100%;
+        }
+
+        /* Pretty Print JSON Overrides */
+        .json-key {
+            color: #7dd3fc !important;
+        }
+
+        .json-string {
+            color: #a5f3fc !important;
+        }
+
+        .json-number {
+            color: #fca5a5 !important;
+        }
+
+        .json-boolean {
+            color: #fca5a5 !important;
+        }
+
+        .json-null {
+            color: #94a3b8 !important;
+        }
+
+        .controls-area {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .ai-section {
+            background-color: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            position: relative;
+        }
+
+        .ai-label-badge {
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white;
+            font-size: 0.65rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 700;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .row {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .jq-status {
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+            height: 1.25em;
+        }
+
+        .jq-status.error {
+            color: var(--danger);
+        }
+
+        .jq-status.valid {
+            color: var(--success);
+        }
+
+        #errorMessage {
+            color: var(--danger);
+            font-size: 0.875rem;
+            padding: 1rem;
+            display: none;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>Smart JSON Tool</h1>
+        <div class="api-key-container">
+            <label for="geminiKey">Gemini API Key</label>
+            <input type="password" id="geminiKey" placeholder="Paste your API key here" style="width: 250px;">
+        </div>
+    </header>
+
+    <main>
+        <!-- Left Panel: Input -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">Raw JSON Input</span>
             </div>
-            <p>
-                <button id="submitText">pretty print</button>
-            </p>
-            <div style="margin-right:5px;padding:5px;border:solid 1px #333;background-color:#999;">
-                pretty-printed JSON:
-                <div style="border:solid 1px #666;background-color:#fff;">
-                    <pre id="afterHTML"></pre>
+            <div class="editor-container">
+                <textarea id="jsonInput" class="code-editor" placeholder="Paste JSON here..."></textarea>
+            </div>
+        </div>
+
+        <!-- Right Panel: Controls & Output -->
+        <div class="panel">
+            <div class="controls-area">
+                <!-- AI Section -->
+                <div class="ai-section">
+                    <div class="ai-label-badge">AI ASSIST</div>
+                    <div class="input-group">
+                        <label for="aiPrompt" style="margin-bottom: 0.5rem; margin-top: 0.25rem;">How do you want to
+                            filter this JSON?</label>
+                        <div class="row">
+                            <input type="text" id="aiPrompt" placeholder="e.g., Get all users who are active..."
+                                style="flex: 1;">
+                            <button id="btnGenerate">Generate JQ</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- JQ Section -->
+                <div class="input-group">
+                    <label for="jqInput">JQ Filter</label>
+                    <input type="text" id="jqInput" value="." style="font-family: var(--font-mono);">
+                    <div id="jqStatus" class="jq-status"></div>
                 </div>
             </div>
+
+            <div class="panel-header" style="margin-top: 0.5rem;">
+                <span class="panel-title">Output</span>
+                <span id="outputMeta" style="font-size: 0.75rem; color: var(--text-secondary);"></span>
+            </div>
+            <div class="editor-container">
+                <div id="outputContainer" class="output-container">
+                    <pre id="jsonOutput"></pre>
+                </div>
+                <div id="errorMessage"></div>
+            </div>
         </div>
-        <div id="app" style="background-color:#ffffcc;">
-        </div>
-        <div>
-            c.f. <a href="https://qiita.com/horikeso/items/72f5953425f13bbde5c3">pretty-print-json - npm</a>
-        </div>
-    </body>
+    </main>
+
+    <script>
+        // Variables
+        const $jsonInput = $('#jsonInput');
+        const $jqInput = $('#jqInput');
+        const $jsonOutput = $('#jsonOutput');
+        const $errorMessage = $('#errorMessage');
+        const $jqStatus = $('#jqStatus');
+        const $outputContainer = $('#outputContainer');
+        const $outputMeta = $('#outputMeta');
+        const $btnGenerate = $('#btnGenerate');
+        const $geminiKey = $('#geminiKey');
+        const $aiPrompt = $('#aiPrompt');
+
+        let currentJsonData = null;
+
+        // Initialize
+        $(document).ready(function () {
+            // Check for jq loading issue
+            if (typeof jq === 'undefined') {
+                if (window.location.protocol === 'file:') {
+                    const warning = $('<div style="background:#fff3cd; color:#856404; padding:0.75rem; margin-bottom:1rem; border-radius:0.375rem; border:1px solid #ffeeba;"><strong>Warning:</strong> The <code>jq</code> library failed to load. This typically happens when opening the file directly (<code>file://</code>) because of browser security restrictions on WebWorkers/WASM. Please serve this file using a local web server (e.g., <code>npx serve</code> or <code>python -m http.server</code>).</div>');
+                    $('.controls-area').prepend(warning);
+                } else {
+                    const error = $('<div style="color:var(--danger); margin-bottom:1rem;">Error: jq library failed to load from CDN. Check your internet connection.</div>');
+                    $('.controls-area').prepend(error);
+                }
+            }
+
+            // Debounce setup
+            let debounceTimer;
+
+            function triggerUpdate() {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    processJson();
+                }, 300);
+            }
+
+            $jsonInput.on('input', triggerUpdate);
+            $jqInput.on('input', triggerUpdate);
+
+            // Initial Paste Handling (if any)
+            if ($jsonInput.val().trim()) {
+                processJson();
+            }
+
+            // Generate Button
+            $btnGenerate.on('click', generateJqWithAi);
+        });
+
+        async function processJson() {
+            const rawJson = $jsonInput.val().trim();
+            const jqFilter = $jqInput.val().trim() || '.';
+
+            if (!rawJson) {
+                showError('');
+                $outputContainer.hide();
+                return;
+            }
+
+            // 1. Parse JSON
+            try {
+                currentJsonData = JSON.parse(rawJson);
+                // Hide explicit error, show container
+                $errorMessage.hide();
+                $outputContainer.show();
+            } catch (e) {
+                showError('Invalid JSON: ' + e.message);
+                $jqStatus.text('');
+                return;
+            }
+
+            // 2. Apply JQ
+            await runJq(currentJsonData, jqFilter);
+        }
+
+        async function runJq(json, filter) {
+            $jqStatus.removeClass('error valid');
+
+            if (typeof jq === 'undefined') {
+                showError('jq library not loaded yet.');
+                return;
+            }
+
+            try {
+                // jq-web 0.6.x loads as a Promise attached to window.jq
+                // We must await it to get the library instance
+                const library = await (window.jq instanceof Promise ? window.jq : Promise.resolve(window.jq));
+
+                // library.json is also async/promise-based usually
+                const result = await library.json(json, filter);
+
+                $jqStatus.text('Valid JQ filter').addClass('valid');
+                $errorMessage.hide();
+                $outputContainer.show();
+
+                // Render
+                const html = prettyPrintJson.toHtml(result, { quoteKeys: true, indent: 2 });
+                $jsonOutput.html(html);
+
+                // Update meta info if array
+                if (Array.isArray(result)) {
+                    $outputMeta.text(`${result.length} items`);
+                } else {
+                    $outputMeta.text('Object');
+                }
+
+            } catch (err) {
+                $jqStatus.text('Invalid JQ syntax').addClass('error');
+                $outputMeta.text('Error');
+            }
+        }
+
+        function showError(msg) {
+            if (!msg) {
+                $errorMessage.hide();
+                return;
+            }
+            $outputContainer.hide();
+            $errorMessage.text(msg).show();
+        }
+
+        // AI Integration
+        async function generateJqWithAi() {
+            const apiKey = $geminiKey.val().trim();
+            const prompt = $aiPrompt.val().trim();
+            const jsonSample = $jsonInput.val().trim();
+
+            if (!apiKey) {
+                alert('Please enter your Gemini API Key in the top right.');
+                $geminiKey.focus();
+                return;
+            }
+            if (!prompt) {
+                alert('Please enter instructions for the AI.');
+                $aiPrompt.focus();
+                return;
+            }
+            if (!jsonSample) {
+                alert('Please enter some JSON first.');
+                $jsonInput.focus();
+                return;
+            }
+
+            // Prepare context - truncate JSON if too large to save tokens/avoid limits
+            const truncatedJson = jsonSample.length > 5000 ? jsonSample.substring(0, 5000) + "...(truncated)" : jsonSample;
+
+            $btnGenerate.addClass('generating').prop('disabled', true);
+
+            const systemPrompt = `
+You are a jq expert. I will provide you with a JSON sample and a user request.
+You must output ONLY the raw jq filter string. 
+Do not include markdown formatting like \`\`\`jq ... \`\`\`. 
+Do not include any explanation. 
+Just the jq filter string.
+
+Example1: 
+- Input:
+-- JSON Sample: {"users": [{"name": "bob", "active": true}]}
+-- User Request: active users
+- Output: .users[] | select(.active == true)
+
+Example2: 
+- Input:
+-- JSON Sample: {"name":"山田太郎","age":30,"is_active":true,"address":{"city":"東京","zipcode":"100-0001"},"hobbies":["読書","映画鑑賞"]}
+-- User Request: addressのキー名を列挙して
+- Output: .address | keys
+`;
+
+            const userMessage = `
+JSON Sample:
+${truncatedJson}
+
+User Request:
+${prompt}
+`;
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: systemPrompt }, { text: userMessage }]
+                        }]
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error.message);
+                }
+
+                let jqResult = data.candidates[0].content.parts[0].text.trim();
+
+                // Cleanup just in case
+                jqResult = jqResult.replace(/^```jq\s*/, '').replace(/^```\s*/, '').replace(/```$/, '');
+
+                $jqInput.val(jqResult);
+                // Trigger update
+                processJson();
+
+            } catch (error) {
+                alert('Gemini API Error: ' + error.message);
+            } finally {
+                $btnGenerate.removeClass('generating').prop('disabled', false);
+            }
+        }
+
+    </script>
+</body>
+
 </html>
