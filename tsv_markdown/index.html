@@ -1,143 +1,491 @@
-
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Set Table</title>
-    <link rel="shortcut icon" href="https://avatars2.githubusercontent.com/u/25813519?v=3&u=d753df8c82ccc1c536b10d3dc771ad0faaaa8b62&s=400">
-    <!-- min jQuery CDN -->
-    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
-    <!-- Latest compiled and minified CSS -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
-    <!-- Optional theme -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
-    <!-- Latest compiled and minified JavaScript -->
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <title>Table Converter (CSV/TSV/Markdown/HTML/ASCII)</title>
+    <!-- PapaParse for CSV/TSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
-        ul {
-            -webkit-padding-start: 0px;
+        :root {
+            --bg-color: #f4f4f9;
+            --text-color: #333;
+            --pane-bg: #fff;
+            --border-color: #ddd;
+            --accent-color: #007bff;
+            --error-bg: #ffe6e6;
+            --error-text: #d8000c;
         }
-        li {
-            /*background-color: #222222;*/
-            margin-left: 20px;
-            display: inline-block;
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            padding: 10px 20px;
+            background-color: var(--pane-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        select,
+        button {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
             font-size: 14px;
+            background-color: #fff;
+            cursor: pointer;
         }
-        ul > li > span {
-            margin-left: 15px;
+
+        button:hover {
+            background-color: #f0f0f0;
+        }
+
+        button#swap-btn {
+            font-size: 18px;
+            padding: 4px 12px;
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            padding: 10px;
+            gap: 10px;
+            overflow: hidden;
+        }
+
+        .pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--pane-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            position: relative;
+        }
+
+        .pane-header {
+            padding: 8px;
+            font-weight: bold;
+            background-color: #f9f9f9;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        textarea {
+            flex: 1;
+            border: none;
+            padding: 10px;
+            resize: none;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            outline: none;
+            white-space: pre;
+        }
+
+        .error-container {
+            background-color: var(--error-bg);
+            color: var(--error-text);
+            padding: 10px 20px;
+            font-size: 14px;
+            display: none;
+            /* Hidden by default */
+            border-top: 1px solid #ffb3b3;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+
+            body {
+                height: auto;
+                min-height: 100vh;
+            }
         }
     </style>
 </head>
+
 <body>
-<nav class="navbar navbar-default navbar-static-top">
-    <div class="container">
-        <div class="container-fluid">
-            <!-- Brand and toggle get grouped for better mobile display -->
-            <div class="navbar-header">
-                <a class="navbar-brand" href="#">
-                    <span class="glyphicon glyphicon-home" aria-hidden="true"></span>
-                </a>
-            </div>
+
+    <header>
+        <h1>Table Converter</h1>
+        <div class="controls">
+            <select id="left-format">
+                <option value="csv">CSV</option>
+                <option value="tsv" selected>TSV</option>
+                <option value="markdown">Markdown</option>
+                <option value="html">HTML</option>
+                <option value="ascii">ASCII Art</option>
+            </select>
+
+            <button id="swap-btn" title="Swap Inputs">⇄</button>
+
+            <select id="right-format">
+                <option value="csv">CSV</option>
+                <option value="tsv">TSV</option>
+                <option value="markdown" selected>Markdown</option>
+                <option value="html">HTML</option>
+                <option value="ascii">ASCII Art</option>
+            </select>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <div class="pane">
+            <div class="pane-header">Input</div>
+            <textarea id="left-pane" placeholder="Paste your data here..."></textarea>
+        </div>
+        <div class="pane">
+            <div class="pane-header">Output</div>
+            <textarea id="right-pane" readonly placeholder="Result will appear here..."></textarea>
         </div>
     </div>
-</nav>
-<div class="container">
-    <!-- テーブル整形 -->
-    <div class="input-group">
-        <span class="input-group-addon"><span class="glyphicon glyphicon-circle-arrow-right create_table" aria-hidden="true" id=""></span></span>
-        <div class="form-control" style="border-bottom: 0px; height: 47px;">
-            <div class="btn-group select_csv_tsv" data-toggle="buttons">
-                <label class="btn btn-default check_btn active" id="csv_check">
-                    <input type="radio" autocomplete="off" checked="checked"> CSV
-                </label>
-                <label class="btn btn-default check_btn" id="tsv_check">
-                    <input type="radio" autocomplete="off"> TSV
-                </label>
-                <label class="btn btn-default" id="write_sample">
-                    <span>Sample入力</span>
-                </label>
-                <label class="btn btn-default" id="delete_sample">
-                    <span>Sample削除</span>
-                </label>
-                <label class="btn btn-default create_table" id="create_table">
-                    <span>Create <span class="glyphicon glyphicon-ok" aria-hidden="true"></span></span>
-                </label>
-                <label><span class="error"></span></label>
-            </div>
-        </div>
-        <textarea class="form-control" rows="5" id="input_check" style="border-radius: 0px;" placeholder="input&#13;&#10;-----------&#13;&#10;sample1,sample2&#13;&#10;sample3,sample4" ></textarea>
-        <textarea class="form-control" rows="8" id="output" style="border-radius: 0px; border-top: 0px;" placeholder="output&#13;&#10;-----------&#13;&#10;|head|head|&#13;&#10;|:-:|:-:|&#13;&#10;|sample1|sample2|&#13;&#10;|sample3|sample4|"></textarea>
-    </div>
-</div>
-<script>
-    (function(){
-        $('#csv_check').on('click', function(){
-            $('#input_check')[0].placeholder = "input\n-----------\nsample1,sample2\nsample3,sample4";
-        });
-        $('#tsv_check').on('click', function(){
-            $('#input_check')[0].placeholder = "input\n-----------\nsample1 sample2\nsample3    sample4";
-        });
-        $('#write_sample').on('click', function(){
-            $('#tsv_check input')[0].click();
-            $('#input_check').val("sample1\tsample2\nsample3\tsample4");
-        });
-        $('#delete_sample').on('click', function(){
-            $('#input_check').val("");
-        });
-        $('.create_table').on('click', function(){
-            // Create head of a Table
-            function set_head(num) {
-                var line1 = "|";
-                var line2 = "|";
-                for (var i = 0; i < num; i++) {
-                    line1 += "head|";
-                    line2 += ":-:|";
-                }
-                return line1 + "\n" + line2 + "\n";
+
+    <div class="error-container" id="error-msg"></div>
+
+    <script>
+        const leftPane = document.getElementById('left-pane');
+        const rightPane = document.getElementById('right-pane');
+        const leftFormatSel = document.getElementById('left-format');
+        const rightFormatSel = document.getElementById('right-format');
+        const swapBtn = document.getElementById('swap-btn');
+        const errorMsg = document.getElementById('error-msg');
+
+        // Intermediate representation: array of arrays of strings
+        // e.g. [['Header1', 'Header2'], ['Val1', 'Val2']]
+
+        function showError(msg) {
+            errorMsg.textContent = msg;
+            errorMsg.style.display = 'block';
+        }
+
+        function clearError() {
+            errorMsg.style.display = 'none';
+            errorMsg.textContent = '';
+        }
+
+        // --- Parsers ---
+
+        function parseCSV(text) {
+            const result = Papa.parse(text, { header: false, skipEmptyLines: false });
+            if (result.errors.length > 0) {
+                throw new Error(`CSV Parse Error: ${result.errors[0].message}`);
             }
-            // Create body of a Table
-            function set_body(lines) {
-                // 配列からbodyを作る
-                function set_line(arr) {
-                    var line = "|";
-                    for (var i = 0; i < arr.length; i++) {
-                        line += arr[i] + "|";
-                    }
-                    return line + "\n";
-                }
-                var body = ""
-                for(var i = 0; i < lines.length; i++) {
-                    line = lines[i]
-                    line_split = line.split(separate);
-                    body += set_line(line_split);
-                }
-                return body;
+            return result.data;
+        }
+
+        function parseTSV(text) {
+            // PapaParse handles TSV if delimiter is tab
+            const result = Papa.parse(text, { delimiter: "\t", header: false, skipEmptyLines: false });
+            if (result.errors.length > 0) {
+                throw new Error(`TSV Parse Error: ${result.errors[0].message}`);
             }
-            // Select a Separate symbol
-            var idname = "csv_check";
-            $('.select_csv_tsv label').each(function(){
-                if ($(this).hasClass("active")) {
-                    idname = $(this).attr("id");
+            return result.data;
+        }
+
+        function parseMarkdown(text) {
+            const lines = text.trim().split('\n');
+            const data = [];
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                // Ignore separator lines (e.g. |---|---|)
+                if (line.match(/^\|?\s*:?-+:?\s*(\| \s*:?-+:?\s*)*\|?$/)) {
+                    continue;
+                }
+
+                // Remove leading/trailing pipes
+                if (line.startsWith('|')) line = line.substring(1);
+                if (line.endsWith('|')) line = line.substring(0, line.length - 1);
+
+                const cells = line.split('|').map(c => c.trim());
+                data.push(cells);
+            }
+            return data;
+        }
+
+        function parseHTML(text) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
+            const table = doc.querySelector('table');
+            if (!table) throw new Error("No <table> tag found in input.");
+
+            const data = [];
+            const rows = table.querySelectorAll('tr');
+
+            rows.forEach(row => {
+                const rowData = [];
+                const cells = row.querySelectorAll('td, th');
+                cells.forEach(cell => rowData.push(cell.textContent.trim()));
+                if (rowData.length > 0) data.push(rowData);
+            });
+
+            return data;
+        }
+
+        function parseASCII(text) {
+            // Simple parser for MySQL style or Markdown style ASCII tables
+            // +---+---+
+            // | A | B |
+            // +---+---+
+
+            const lines = text.trim().split('\n');
+            const data = [];
+
+            for (let line of lines) {
+                line = line.trim();
+                // Skip separator lines (+---+ or |---| where inner content is only -)
+                if (line.startsWith('+') || line.match(/^\|[-+ ]+\|$/)) {
+                    continue;
+                }
+
+                // Remove side borders
+                const content = line.replace(/^\||\|$/g, '');
+                const cells = content.split('|').map(c => c.trim());
+                data.push(cells);
+            }
+            return data;
+        }
+
+        function parse(text, format) {
+            if (!text.trim()) return [];
+            switch (format) {
+                case 'csv': return parseCSV(text);
+                case 'tsv': return parseTSV(text);
+                case 'markdown': return parseMarkdown(text);
+                case 'html': return parseHTML(text);
+                case 'ascii': return parseASCII(text);
+                default: throw new Error(`Unknown format: ${format}`);
+            }
+        }
+
+        // --- Generators ---
+
+        function generateCSV(data) {
+            return Papa.unparse(data);
+        }
+
+        function generateTSV(data) {
+            return Papa.unparse(data, { delimiter: "\t" });
+        }
+
+        function generateMarkdown(data) {
+            if (data.length === 0) return "";
+
+            // Calculate max width for each column
+            const colWidths = [];
+            const colCount = data.reduce((max, row) => Math.max(max, row.length), 0);
+
+            for (let i = 0; i < colCount; i++) {
+                colWidths[i] = 3; // Min width "---"
+                for (let row of data) {
+                    const cell = row[i] || "";
+                    colWidths[i] = Math.max(colWidths[i], cell.length);
+                }
+            }
+
+            let output = "";
+
+            // Header
+            const headerRow = data[0] || [];
+            output += "| " + headerRow.map((c, i) => (c || "").padEnd(colWidths[i])).join(" | ") + " |\n";
+
+            // Separator
+            output += "| " + colWidths.map(w => "-".repeat(w)).join(" | ") + " |\n";
+
+            // Body
+            for (let i = 1; i < data.length; i++) {
+                const row = data[i];
+                const cells = [];
+                for (let j = 0; j < colCount; j++) {
+                    cells.push((row[j] || "").padEnd(colWidths[j]));
+                }
+                output += "| " + cells.join(" | ") + " |\n";
+            }
+
+            return output;
+        }
+
+        function generateHTML(data) {
+            if (data.length === 0) return "";
+            let html = "<table>\n";
+
+            // Header
+            if (data.length > 0) {
+                html += "  <thead>\n    <tr>\n";
+                data[0].forEach(cell => {
+                    html += `      <th>${escapeHtml(cell)}</th>\n`;
+                });
+                html += "    </tr>\n  </thead>\n";
+            }
+
+            // Body
+            if (data.length > 1) {
+                html += "  <tbody>\n";
+                for (let i = 1; i < data.length; i++) {
+                    html += "    <tr>\n";
+                    data[i].forEach(cell => {
+                        html += `      <td>${escapeHtml(cell)}</td>\n`;
+                    });
+                    html += "    </tr>\n";
+                }
+                html += "  </tbody>\n";
+            }
+
+            html += "</table>";
+            return html;
+        }
+
+        function generateASCII(data) {
+            if (data.length === 0) return "";
+
+            const colCount = data.reduce((max, row) => Math.max(max, row.length), 0);
+            const colWidths = new Array(colCount).fill(0);
+
+            for (let row of data) {
+                for (let i = 0; i < colCount; i++) {
+                    colWidths[i] = Math.max(colWidths[i], (row[i] || "").length);
+                }
+            }
+
+            const separator = "+" + colWidths.map(w => "-".repeat(w + 2)).join("+") + "+\n";
+            let output = separator;
+
+            data.forEach((row, rowIndex) => {
+                const cells = [];
+                for (let i = 0; i < colCount; i++) {
+                    cells.push((row[i] || "").padEnd(colWidths[i]));
+                }
+                output += "| " + cells.join(" | ") + " |\n";
+                if (rowIndex === 0 || rowIndex === data.length - 1) {
+                    output += separator;
+                } else {
+                    // For inner rows, we can just use simple separator or nothing?
+                    // Standard MySQL puts separator between header and body, and at ends.
+                    // Let's just put separator between header and body.
                 }
             });
-            var separate = "\t";
-            if (idname == "csv_check") { separate = ","; }
-            // Check input text
-            var text = $('#input_check').val();
-            if (text.trim().length == 0) { return; }
-            var lines = text.split("\n");
-            var width = lines[0].split(separate).length;
-            // Create text for output
-            var output = set_head(width);
-            output += set_body(lines);
-            $('#output').val(output);
+
+            // If more than header, close the table
+            // Actually simplest ASCII table is:
+            // +---+
+            // | H |
+            // +---+
+            // | B |
+            // +---+
+
+            // Let's redo: Separator line, Row, Separator line...
+            output = separator;
+            data.forEach((row, rowIndex) => {
+                const cells = [];
+                for (let i = 0; i < colCount; i++) {
+                    cells.push((row[i] || "").padEnd(colWidths[i]));
+                }
+                output += "| " + cells.join(" | ") + " |\n";
+                output += separator;
+            });
+
+            return output;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return "";
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function convert() {
+            clearError();
+            const input = leftPane.value;
+            const inFormat = leftFormatSel.value;
+            const outFormat = rightFormatSel.value;
+
+            try {
+                const data = parse(input, inFormat);
+                const output = (() => {
+                    switch (outFormat) {
+                        case 'csv': return generateCSV(data);
+                        case 'tsv': return generateTSV(data);
+                        case 'markdown': return generateMarkdown(data);
+                        case 'html': return generateHTML(data);
+                        case 'ascii': return generateASCII(data);
+                        default: return "";
+                    }
+                })();
+                rightPane.value = output;
+            } catch (e) {
+                showError(e.message);
+                // Don't clear output on error, maybe user wants to see partial?
+                // Or maybe clear it? Let's just leave it or clear it.
+                // rightPane.value = ""; 
+            }
+        }
+
+        // --- Events ---
+
+        leftPane.addEventListener('input', convert);
+        leftFormatSel.addEventListener('change', convert);
+        rightFormatSel.addEventListener('change', convert);
+
+        swapBtn.addEventListener('click', () => {
+            // Swap Formats
+            const tempFmt = leftFormatSel.value;
+            leftFormatSel.value = rightFormatSel.value;
+            rightFormatSel.value = tempFmt;
+
+            // Swap Content
+            // Since right pane is output, it might be perfect to just move it to left.
+            // But if there was an error, right pane might be empty or stale.
+            // Let's take the current right pane value (which is a valid generation of the current left input)
+            // and put it in the left pane.
+
+            // However, if the user manually edited the right pane (if it was editable), we would want that.
+            // But right pane is readonly.
+            // So we take the generated content.
+
+            const currentOutput = rightPane.value;
+            leftPane.value = currentOutput;
+
+            // Trigger convert to generate the new output (which effectively reverses the operation)
+            // e.g. CSV -(convert)-> MD. Swap. MD -(convert)-> CSV.
+            convert();
         });
-    })();
-</script>
-<footer style="text-align:right;">
-Copied from <a href="https://qiita.com/ykhirao/items/03f1e886af5493755ae2">https://qiita.com/ykhirao/items/03f1e886af5493755ae2</a>
-</footer>
+
+        // Initial placeholder logic or default data
+        leftPane.value = "Name\tAge\tLocation\nAlice\t30\tNew York\nBob\t25\tSan Francisco";
+        convert();
+
+    </script>
+
 </body>
+
 </html>
